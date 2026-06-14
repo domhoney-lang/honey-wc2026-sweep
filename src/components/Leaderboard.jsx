@@ -34,8 +34,26 @@ export default function Leaderboard({ participants, searchTerm, sortBy }) {
   return (
     <div className="leaderboard-grid">
       {sortedParticipants.map((player, index) => {
-        const isMatch = searchTerm === '' || player.name.toLowerCase().includes(searchTerm.toLowerCase());
+        const searchLower = searchTerm.toLowerCase();
+        const isMatch = searchTerm === '' || 
+                        player.name.toLowerCase().includes(searchLower) ||
+                        player.countries.some(c => c.name.toLowerCase().includes(searchLower));
         
+        // Sort countries based on the current dashboard sort mode
+        const sortedCountries = [...player.countries].sort((a, b) => {
+           if (sortBy === 'name') {
+              return a.name.localeCompare(b.name);
+           }
+           if (sortBy === 'odds') {
+              const aOdds = a.status === 'active' ? Number(a.price) || Infinity : Infinity;
+              const bOdds = b.status === 'active' ? Number(b.price) || Infinity : Infinity;
+              // If both have the same odds (e.g. both Infinity because they are eliminated), sort alphabetically
+              if (aOdds === bOdds) return a.name.localeCompare(b.name);
+              return aOdds - bOdds;
+           }
+           return 0;
+        });
+
         return (
           <div 
             key={player.id} 
@@ -44,6 +62,7 @@ export default function Leaderboard({ participants, searchTerm, sortBy }) {
           >
             <ParticipantCard 
               {...player} 
+              countries={sortedCountries}
             />
           </div>
         );

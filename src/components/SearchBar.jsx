@@ -6,7 +6,7 @@ export default function SearchBar({ searchTerm, onSearchChange, sortBy, onSortCh
       <input
         type="text"
         className="search-input"
-        placeholder="Search for a participant..."
+        placeholder="Search for a participant or country..."
         value={searchTerm}
         onChange={(e) => onSearchChange(e.target.value)}
       />
