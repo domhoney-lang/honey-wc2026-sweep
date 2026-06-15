@@ -1,6 +1,62 @@
 import React, { useState, useEffect } from 'react';
 
-export default function ParticipantCard({ id, name, initials, color, countries, style, fixtures = [], globalFlip }) {
+const ParticipantAvatar = ({ participant, size = '48px', style = {} }) => {
+  const [imgSrc, setImgSrc] = useState(`/avatars/${participant.name.toLowerCase()}.jpg`);
+  const [useFallback, setUseFallback] = useState(false);
+
+  const handleImgError = () => {
+    if (imgSrc.endsWith('.jpg')) {
+      setImgSrc(`/avatars/${participant.name.toLowerCase()}.png`);
+    } else if (imgSrc.endsWith('.png')) {
+      setImgSrc(`/avatars/${participant.name.toLowerCase()}.jpeg`);
+    } else {
+      setUseFallback(true);
+    }
+  };
+
+  if (useFallback) {
+    return (
+      <div 
+        className="avatar" 
+        style={{ 
+          backgroundColor: participant.color, 
+          width: size, 
+          height: size, 
+          fontSize: size === '80px' ? '2rem' : '1rem', 
+          margin: size === '80px' ? '0 auto 1.5rem auto' : '0',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: 0,
+          ...style
+        }}
+      >
+        {participant.initials}
+      </div>
+    );
+  }
+
+  return (
+    <img 
+      src={imgSrc} 
+      alt={participant.name} 
+      onError={handleImgError}
+      style={{ 
+        width: size, 
+        height: size, 
+        borderRadius: '50%', 
+        objectFit: 'cover', 
+        border: `2px solid ${participant.color}`,
+        boxShadow: size === '80px' ? 'var(--shadow-md)' : 'var(--shadow-sm)',
+        flexShrink: 0,
+        marginBottom: size === '80px' ? '1.5rem' : '0',
+        ...style
+      }}
+    />
+  );
+};
+
+export default function ParticipantCard({ id, name, initials, color, countries, style, fixtures = [], globalFlip, allParticipants = [] }) {
   const isEliminated = countries.length > 0 && countries.every(c => c.status === 'eliminated');
   
   const [isFlipped, setIsFlipped] = useState(false);
@@ -9,20 +65,7 @@ export default function ParticipantCard({ id, name, initials, color, countries, 
     setIsFlipped(globalFlip);
   }, [globalFlip]);
 
-  // Try loading .jpg first. If it fails, the onError handler will try .png, then fallback.
-  const [imgSrc, setImgSrc] = useState(`/avatars/${name.toLowerCase()}.jpg`);
-  const [useFallback, setUseFallback] = useState(false);
-
-  const handleImgError = () => {
-    if (imgSrc.endsWith('.jpg')) {
-      setImgSrc(`/avatars/${name.toLowerCase()}.png`);
-    } else if (imgSrc.endsWith('.png')) {
-      // Also try .jpeg just in case!
-      setImgSrc(`/avatars/${name.toLowerCase()}.jpeg`);
-    } else {
-      setUseFallback(true);
-    }
-  };
+  // Avatar state has been extracted to ParticipantAvatar
 
   const decimalToFraction = (decimal) => {
     let d = Number(decimal) - 1;
@@ -82,6 +125,14 @@ export default function ParticipantCard({ id, name, initials, color, countries, 
 
   const nextMatch = getNextMatch();
 
+  const getOpponent = () => {
+    if (!nextMatch || !allParticipants || allParticipants.length === 0) return null;
+    const opponentTeamNormalized = nextMatch.isHome ? nextMatch.away_team_normalized : nextMatch.home_team_normalized;
+    return allParticipants.find(p => p.countries.some(c => c.name.toLowerCase() === opponentTeamNormalized));
+  };
+
+  const opponent = getOpponent();
+
   const getRelativeTime = (dateString) => {
     if (!dateString) return '';
     const date = new Date(dateString);
@@ -107,26 +158,7 @@ export default function ParticipantCard({ id, name, initials, color, countries, 
         {/* FRONT FACE */}
         <div className="flip-card-front" style={{ borderTop: `4px solid ${color}` }}>
           <div className="card-header">
-            {!useFallback ? (
-              <img 
-                src={imgSrc} 
-                alt={name} 
-                onError={handleImgError}
-                style={{ 
-                  width: '48px', 
-                  height: '48px', 
-                  borderRadius: '50%', 
-                  objectFit: 'cover', 
-                  border: `2px solid ${color}`,
-                  boxShadow: 'var(--shadow-sm)',
-                  flexShrink: 0
-                }}
-              />
-            ) : (
-              <div className="avatar" style={{ backgroundColor: color }}>
-                {initials}
-              </div>
-            )}
+            <ParticipantAvatar participant={{ name, initials, color }} size="48px" />
             <h3 className="participant-name">{name}</h3>
           </div>
           <div className="countries-list">
@@ -153,25 +185,7 @@ export default function ParticipantCard({ id, name, initials, color, countries, 
         {/* BACK FACE */}
         <div className="flip-card-back" style={{ borderTop: `4px solid ${color}` }}>
           <div className="back-header" style={{ textAlign: 'center' }}>
-             {!useFallback ? (
-              <img 
-                src={imgSrc} 
-                alt={name} 
-                style={{ 
-                  width: '80px', 
-                  height: '80px', 
-                  borderRadius: '50%', 
-                  objectFit: 'cover', 
-                  border: `3px solid ${color}`,
-                  boxShadow: 'var(--shadow-md)',
-                  marginBottom: '1.5rem'
-                }}
-              />
-            ) : (
-              <div className="avatar" style={{ backgroundColor: color, width: '80px', height: '80px', fontSize: '2rem', margin: '0 auto 1.5rem auto' }}>
-                {initials}
-              </div>
-            )}
+            <ParticipantAvatar participant={{ name, initials, color }} size="80px" style={{ borderWidth: '3px' }} />
           </div>
           
           {!isEliminated && (
@@ -201,6 +215,13 @@ export default function ParticipantCard({ id, name, initials, color, countries, 
                  <span className="vs"> vs </span>
                  <span className={!nextMatch.isHome ? 'active-team' : 'muted-team'}>{nextMatch.away_team}</span>
                </div>
+               {opponent && (
+                 <div className="up-against-container" style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                   <span className="match-label" style={{ fontSize: '0.75rem', marginBottom: '0.5rem', color: 'var(--color-text-muted)' }}>Up Against</span>
+                   <ParticipantAvatar participant={opponent} size="40px" />
+                   <span style={{ fontSize: '0.8rem', marginTop: '0.5rem', fontWeight: '500' }}>{opponent.name}</span>
+                 </div>
+               )}
              </div>
           )}
 
