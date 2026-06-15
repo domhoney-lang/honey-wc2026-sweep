@@ -23,6 +23,8 @@ export default function App() {
   const [sortBy, setSortBy] = useState('name');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [fixtures, setFixtures] = useState([]);
+  const [globalFlip, setGlobalFlip] = useState(false);
 
   useEffect(() => {
     async function fetchOdds() {
@@ -50,65 +52,103 @@ export default function App() {
         })));
       };
 
+      const FIXTURES_CACHE_KEY = 'fixturesDataCache';
+      const FIXTURES_CACHE_TIME_KEY = 'fixturesDataTimestamp';
+
       // Check LocalStorage Cache
       const cachedData = localStorage.getItem(CACHE_KEY);
       const cachedTime = localStorage.getItem(CACHE_TIME_KEY);
 
+      let isOutrightCached = false;
       if (cachedData && cachedTime && (Date.now() - Number(cachedTime) < ONE_DAY_MS)) {
         try {
           const oddsMap = JSON.parse(cachedData);
           applyOddsMap(oddsMap);
-          return; // Skip the API fetch because we have fresh cache
+          isOutrightCached = true;
         } catch(e) {
           console.error("Failed to parse cached odds data", e);
         }
       }
 
+      const cachedFixtures = localStorage.getItem(FIXTURES_CACHE_KEY);
+      const cachedFixturesTime = localStorage.getItem(FIXTURES_CACHE_TIME_KEY);
+
+      let isFixturesCached = false;
+      if (cachedFixtures && cachedFixturesTime && (Date.now() - Number(cachedFixturesTime) < ONE_DAY_MS)) {
+        try {
+          const fixturesData = JSON.parse(cachedFixtures);
+          setFixtures(fixturesData);
+          isFixturesCached = true;
+        } catch(e) {
+          console.error("Failed to parse cached fixtures data", e);
+        }
+      }
+
+      if (isOutrightCached && isFixturesCached) return;
+
       setLoading(true);
       setError(null);
       
       try {
-        const url = `https://api.the-odds-api.com/v4/sports/soccer_fifa_world_cup_winner/odds/?apiKey=${THE_ODDS_API_KEY}&regions=uk&markets=outrights&oddsFormat=decimal`;
-        const response = await fetch(url);
-        
-        if (response.status === 401) throw new Error("Invalid API Key");
-        if (response.status === 429) throw new Error("API Rate Limit Exceeded");
-        if (!response.ok) throw new Error("Failed to fetch live odds data");
-        
-        const data = await response.json();
-        
-        if (!data || data.length === 0) {
-          throw new Error("No World Cup outrights market found at this time");
+        if (!isOutrightCached) {
+          const url = `https://api.the-odds-api.com/v4/sports/soccer_fifa_world_cup_winner/odds/?apiKey=${THE_ODDS_API_KEY}&regions=uk&markets=outrights&oddsFormat=decimal`;
+          const response = await fetch(url);
+          
+          if (response.status === 401) throw new Error("Invalid API Key");
+          if (response.status === 429) throw new Error("API Rate Limit Exceeded");
+          if (!response.ok) throw new Error("Failed to fetch live odds data");
+          
+          const data = await response.json();
+          
+          if (!data || data.length === 0) {
+            throw new Error("No World Cup outrights market found at this time");
+          }
+
+          const event = data[0];
+          const bookies = event.bookmakers;
+          
+          if (!bookies || bookies.length === 0) {
+             throw new Error("No bookmaker data available");
+          }
+
+          let selectedBookie = bookies.find(b => b.key === 'bet365') 
+                            || bookies.find(b => b.key === 'skybet') 
+                            || bookies.find(b => b.key === 'williamhill') 
+                            || bookies[0];
+
+          const outrightMarket = selectedBookie.markets.find(m => m.key === 'outrights');
+          
+          if (!outrightMarket || !outrightMarket.outcomes) {
+            throw new Error("Outrights market data is empty");
+          }
+
+          const oddsMap = {};
+          outrightMarket.outcomes.forEach(outcome => {
+             oddsMap[normalizeCountryName(outcome.name)] = outcome.price;
+          });
+
+          // Save to cache for 24 hours
+          localStorage.setItem(CACHE_KEY, JSON.stringify(oddsMap));
+          localStorage.setItem(CACHE_TIME_KEY, Date.now().toString());
+
+          applyOddsMap(oddsMap);
         }
 
-        const event = data[0];
-        const bookies = event.bookmakers;
-        
-        if (!bookies || bookies.length === 0) {
-           throw new Error("No bookmaker data available");
+        if (!isFixturesCached) {
+          const url = `https://api.the-odds-api.com/v4/sports/soccer_fifa_world_cup/odds/?apiKey=${THE_ODDS_API_KEY}&regions=uk&markets=h2h`;
+          const response = await fetch(url);
+          if (response.ok) {
+            const data = await response.json();
+            const normalizedFixtures = data.map(match => ({
+               ...match,
+               home_team_normalized: normalizeCountryName(match.home_team),
+               away_team_normalized: normalizeCountryName(match.away_team)
+            }));
+            localStorage.setItem(FIXTURES_CACHE_KEY, JSON.stringify(normalizedFixtures));
+            localStorage.setItem(FIXTURES_CACHE_TIME_KEY, Date.now().toString());
+            setFixtures(normalizedFixtures);
+          }
         }
-
-        let selectedBookie = bookies.find(b => b.key === 'bet365') 
-                          || bookies.find(b => b.key === 'skybet') 
-                          || bookies.find(b => b.key === 'williamhill') 
-                          || bookies[0];
-
-        const outrightMarket = selectedBookie.markets.find(m => m.key === 'outrights');
-        
-        if (!outrightMarket || !outrightMarket.outcomes) {
-          throw new Error("Outrights market data is empty");
-        }
-
-        const oddsMap = {};
-        outrightMarket.outcomes.forEach(outcome => {
-           oddsMap[normalizeCountryName(outcome.name)] = outcome.price;
-        });
-
-        // Save to cache for 24 hours
-        localStorage.setItem(CACHE_KEY, JSON.stringify(oddsMap));
-        localStorage.setItem(CACHE_TIME_KEY, Date.now().toString());
-
-        applyOddsMap(oddsMap);
 
       } catch (err) {
         console.error(err);
@@ -138,6 +178,8 @@ export default function App() {
           onSearchChange={setSearchTerm} 
           sortBy={sortBy}
           onSortChange={setSortBy}
+          globalFlip={globalFlip}
+          onToggleFlip={() => setGlobalFlip(!globalFlip)}
         />
         {loading ? (
            <div style={{ textAlign: 'center', padding: '2rem', fontSize: '1.1rem', color: 'var(--color-text-muted)' }}>
@@ -148,6 +190,8 @@ export default function App() {
             participants={participants} 
             searchTerm={searchTerm} 
             sortBy={sortBy}
+            fixtures={fixtures}
+            globalFlip={globalFlip}
           />
         )}
       </main>

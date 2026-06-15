@@ -1,6 +1,6 @@
 import React from 'react';
 
-export default function SearchBar({ searchTerm, onSearchChange, sortBy, onSortChange }) {
+export default function SearchBar({ searchTerm, onSearchChange, sortBy, onSortChange, globalFlip, onToggleFlip }) {
   return (
     <div className="controls-container">
       <input
@@ -22,6 +22,19 @@ export default function SearchBar({ searchTerm, onSearchChange, sortBy, onSortCh
           onClick={() => onSortChange('odds')}
         >
           Sort by Odds
+        </button>
+      </div>
+      <div className="sort-buttons">
+        <button 
+          className="sort-btn"
+          onClick={onToggleFlip}
+          style={{ 
+            background: globalFlip ? 'var(--color-primary)' : 'transparent', 
+            color: globalFlip ? 'white' : 'var(--color-text-muted)',
+            boxShadow: globalFlip ? '0 4px 14px 0 rgba(16, 185, 129, 0.39)' : 'none'
+          }}
+        >
+          {globalFlip ? 'Unflip Cards' : 'Flip Cards'}
         </button>
       </div>
     </div>

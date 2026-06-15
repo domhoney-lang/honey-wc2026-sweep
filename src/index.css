@@ -250,32 +250,140 @@ h1, h2, h3, h4, h5, h6 {
   pointer-events: none;
 }
 
-/* Participant Card */
-.participant-card {
+/* Participant Card Container & 3D Flip */
+.participant-card-container {
+  perspective: 1000px;
+  height: 100%;
+}
+
+.participant-card-container:hover {
+  z-index: 10;
+}
+
+.flip-card-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  transform-style: preserve-3d;
+  display: grid;
+}
+
+.participant-card-container.flipped .flip-card-inner {
+  transform: rotateY(180deg);
+}
+
+.participant-card-container:hover .flip-card-inner {
+  transform: scale(1.02);
+}
+.participant-card-container.flipped:hover .flip-card-inner {
+  transform: rotateY(180deg) scale(1.02);
+}
+
+.flip-card-front, .flip-card-back {
+  grid-area: 1 / 1;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
   background: var(--color-surface);
   border-radius: 1rem;
   padding: 1.5rem;
   box-shadow: var(--shadow-md);
-  transition: transform var(--transition-normal), box-shadow var(--transition-normal), background-color var(--transition-normal);
   display: flex;
   flex-direction: column;
+}
+
+.flip-card-front {
   gap: 1.5rem;
-  height: 100%;
 }
 
-.participant-card:hover {
-  transform: scale(1.02);
-  box-shadow: var(--shadow-hover);
-  z-index: 10;
+.flip-card-back {
+  transform: rotateY(180deg);
 }
 
-.participant-card.eliminated-card {
+.eliminated-card .flip-card-front,
+.eliminated-card .flip-card-back {
   background-color: var(--color-eliminated-bg);
   box-shadow: var(--shadow-sm);
 }
-.participant-card.eliminated-card:hover {
-  transform: scale(1);
-  box-shadow: var(--shadow-sm);
+
+/* Portfolio Back Face Styles */
+.stats-container {
+  display: flex;
+  justify-content: space-around;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.stat-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.5rem;
+}
+
+.stat-label {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.stat-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-text-main);
+}
+
+.next-match-container {
+  background: var(--color-bg);
+  border-radius: 0.5rem;
+  padding: 1rem;
+  text-align: center;
+  border: 1px solid var(--color-border);
+}
+
+.match-label {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.5rem;
+}
+
+.match-time {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--color-primary);
+  margin-bottom: 0.5rem;
+}
+
+.matchup {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-size: 1rem;
+}
+
+.active-team {
+  font-weight: 700;
+  color: var(--color-text-main);
+}
+
+.muted-team {
+  font-weight: 400;
+  color: var(--color-text-muted);
+}
+
+.vs {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
 }
 
 .card-header {
