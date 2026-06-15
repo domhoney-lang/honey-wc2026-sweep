@@ -21,18 +21,25 @@ export default function SearchBar({ searchTerm, onSearchChange, sortBy, onSortCh
           </button>
         )}
       </div>
-      <div className="sort-buttons">
+      <div className="sort-buttons" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <span style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem', fontWeight: 500 }}>Sort by:</span>
         <button 
           className={`sort-btn ${sortBy === 'name' ? 'active' : ''}`}
           onClick={() => onSortChange('name')}
         >
-          Sort by Name
+          Name
         </button>
         <button 
           className={`sort-btn ${sortBy === 'odds' ? 'active' : ''}`}
           onClick={() => onSortChange('odds')}
         >
-          Sort by Odds
+          Odds
+        </button>
+        <button 
+          className={`sort-btn ${sortBy === 'next_match' ? 'active' : ''}`}
+          onClick={() => onSortChange('next_match')}
+        >
+          Next Match
         </button>
       </div>
       <div className="sort-buttons">
