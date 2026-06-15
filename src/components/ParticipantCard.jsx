@@ -102,16 +102,34 @@ export default function ParticipantCard({ id, name, initials, color, countries, 
     ? activeCountries.reduce((best, current) => Number(current.price) < Number(best.price) ? current : best) 
     : null;
 
+  const normalizeCountryName = (name) => {
+    if (!name) return '';
+    const lower = name.trim().toLowerCase();
+    if (lower === 'korea republic' || lower === 'republic of korea' || lower === 'south korea') return 'south korea';
+    if (lower === 'usa' || lower === 'united states of america') return 'united states';
+    if (lower === 'dr congo' || lower === 'democratic republic of the congo') return 'congo dr';
+    if (lower === 'cape verde') return 'cape verde islands';
+    if (lower === 'bosnia and herzegovina' || lower === 'bosnia-herzegovina') return 'bosnia & herzegovina';
+    if (lower === 'ivory coast' || lower === "cote d'ivoire") return "cote d'ivoire";
+    if (lower === 'curaçao') return 'curacao';
+    return lower;
+  };
+
   const getNextMatch = () => {
     if (activeCountries.length === 0 || !fixtures || fixtures.length === 0) return null;
     
-    const activeNames = activeCountries.map(c => c.name.toLowerCase());
+    const activeNames = activeCountries.map(c => normalizeCountryName(c.name));
     
-    const sortedFixtures = [...fixtures].sort((a, b) => new Date(a.commence_time) - new Date(b.commence_time));
+    const now = new Date();
+    // Keep matches that are in the future or started within the last 2.5 hours
+    const cutoffTime = new Date(now.getTime() - 2.5 * 60 * 60 * 1000);
+    
+    const relevantFixtures = fixtures.filter(match => new Date(match.commence_time) > cutoffTime);
+    const sortedFixtures = relevantFixtures.sort((a, b) => new Date(a.commence_time) - new Date(b.commence_time));
     
     for (const match of sortedFixtures) {
-      const homeMatch = activeNames.includes(match.home_team_normalized);
-      const awayMatch = activeNames.includes(match.away_team_normalized);
+      const homeMatch = activeNames.includes(match.home_team_normalized || normalizeCountryName(match.home_team));
+      const awayMatch = activeNames.includes(match.away_team_normalized || normalizeCountryName(match.away_team));
       
       if (homeMatch || awayMatch) {
         return {
@@ -125,13 +143,28 @@ export default function ParticipantCard({ id, name, initials, color, countries, 
 
   const nextMatch = getNextMatch();
 
-  const getOpponent = () => {
-    if (!nextMatch || !allParticipants || allParticipants.length === 0) return null;
-    const opponentTeamNormalized = nextMatch.isHome ? nextMatch.away_team_normalized : nextMatch.home_team_normalized;
-    return allParticipants.find(p => p.countries.some(c => c.name.toLowerCase() === opponentTeamNormalized));
+  const getOpponentInfo = () => {
+    if (!nextMatch) return null;
+    const opponentTeamNormalized = nextMatch.isHome 
+      ? (nextMatch.away_team_normalized || normalizeCountryName(nextMatch.away_team)) 
+      : (nextMatch.home_team_normalized || normalizeCountryName(nextMatch.home_team));
+      
+    const opponentTeamName = nextMatch.isHome ? nextMatch.away_team : nextMatch.home_team;
+    
+    let opponent = null;
+    let countryCode = null;
+    
+    if (allParticipants && allParticipants.length > 0) {
+      opponent = allParticipants.find(p => p.countries.some(c => normalizeCountryName(c.name) === opponentTeamNormalized));
+      if (opponent) {
+        countryCode = opponent.countries.find(c => normalizeCountryName(c.name) === opponentTeamNormalized)?.code;
+      }
+    }
+    
+    return { opponent, teamName: opponentTeamName, countryCode };
   };
 
-  const opponent = getOpponent();
+  const opponentInfo = getOpponentInfo();
 
   const getRelativeTime = (dateString) => {
     if (!dateString) return '';
@@ -142,12 +175,16 @@ export default function ParticipantCard({ id, name, initials, color, countries, 
     targetDate.setHours(0, 0, 0, 0);
     
     const diffTime = targetDate - today;
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
     
     const timeString = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     
-    if (diffDays === 0) return `TODAY AT ${timeString}`;
+    if (diffDays === 0) {
+      if (date < new Date()) return `LIVE: STARTED AT ${timeString}`;
+      return `TODAY AT ${timeString}`;
+    }
     if (diffDays === 1) return `TOMORROW AT ${timeString}`;
+    if (diffDays < 0) return `LIVE: STARTED AT ${timeString}`;
     return `IN ${diffDays} DAYS AT ${timeString}`;
   };
 
@@ -215,11 +252,25 @@ export default function ParticipantCard({ id, name, initials, color, countries, 
                  <span className="vs"> vs </span>
                  <span className={!nextMatch.isHome ? 'active-team' : 'muted-team'}>{nextMatch.away_team}</span>
                </div>
-               {opponent && (
-                 <div className="up-against-container" style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                   <span className="match-label" style={{ fontSize: '0.75rem', marginBottom: '0.5rem', color: 'var(--color-text-muted)' }}>Up Against</span>
-                   <ParticipantAvatar participant={opponent} size="40px" />
-                   <span style={{ fontSize: '0.8rem', marginTop: '0.5rem', fontWeight: '500' }}>{opponent.name}</span>
+               {opponentInfo && (
+                 <div className="up-against-container" style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', alignItems: 'center', background: 'var(--color-bg-secondary)', padding: '0.75rem', borderRadius: '0.5rem', width: '100%', boxSizing: 'border-box' }}>
+                   <span className="match-label" style={{ fontSize: '0.75rem', marginBottom: '0.5rem', color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Up Against</span>
+                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                     {opponentInfo.opponent ? (
+                       <ParticipantAvatar participant={opponentInfo.opponent} size="36px" />
+                     ) : (
+                       <div style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: 'var(--color-bg-tertiary, #334155)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', color: '#94a3b8' }}>?</div>
+                     )}
+                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                       <span style={{ fontSize: '0.85rem', fontWeight: '600' }}>
+                         {opponentInfo.opponent ? opponentInfo.opponent.name : 'Unassigned'}
+                       </span>
+                       <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
+                         {opponentInfo.countryCode && <span className={`fi fi-${opponentInfo.countryCode} flag-icon`} style={{ width: '12px', height: '12px', fontSize: '10px' }}></span>}
+                         {opponentInfo.teamName}
+                       </span>
+                     </div>
+                   </div>
                  </div>
                )}
              </div>
