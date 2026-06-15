@@ -208,10 +208,20 @@ h1, h2, h3, h4, h5, h6 {
   color: white;
 }
 
-.search-input {
+.search-wrapper {
+  position: relative;
   width: 100%;
   max-width: 400px;
-  padding: 0.875rem 1.5rem;
+  transition: max-width var(--transition-normal);
+}
+
+.search-wrapper:focus-within {
+  max-width: 500px;
+}
+
+.search-input {
+  width: 100%;
+  padding: 0.875rem 2.5rem 0.875rem 1.5rem;
   font-size: 1rem;
   font-family: 'Inter', sans-serif;
   border: 2px solid var(--color-border);
@@ -224,9 +234,33 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .search-input:focus {
-  max-width: 500px;
   border-color: var(--color-primary);
   box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.1);
+}
+
+.clear-search-btn {
+  position: absolute;
+  right: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  font-size: 1.25rem;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  transition: color var(--transition-fast), background-color var(--transition-fast);
+}
+
+.clear-search-btn:hover {
+  color: var(--color-text-main);
+  background-color: var(--color-eliminated-bg);
 }
 
 .search-input::placeholder {

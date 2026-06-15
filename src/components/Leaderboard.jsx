@@ -54,10 +54,12 @@ export default function Leaderboard({ participants, searchTerm, sortBy, fixtures
            return 0;
         });
 
+        if (!isMatch && searchTerm !== '') return null;
+
         return (
           <div 
             key={player.id} 
-            className={`participant-wrapper ${!isMatch && searchTerm !== '' ? 'dimmed' : ''}`}
+            className="participant-wrapper"
             style={{ '--index': index }}
           >
             <ParticipantCard 
