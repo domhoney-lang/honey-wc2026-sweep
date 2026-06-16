@@ -104,7 +104,7 @@ export default function Leaderboard({ participants, searchTerm, sortBy, fixtures
           <div 
             key={player.id} 
             className="participant-wrapper"
-            style={{ '--index': index }}
+            style={{ '--index': index, viewTransitionName: `card-${player.id}` }}
           >
             <ParticipantCard 
               {...player} 

@@ -161,6 +161,30 @@ export default function App() {
     fetchOdds();
   }, []);
 
+  const handleSearchChange = (val) => {
+    if (document.startViewTransition) {
+      document.startViewTransition(() => setSearchTerm(val));
+    } else {
+      setSearchTerm(val);
+    }
+  };
+
+  const handleSortChange = (val) => {
+    if (document.startViewTransition) {
+      document.startViewTransition(() => setSortBy(val));
+    } else {
+      setSortBy(val);
+    }
+  };
+
+  const handleToggleFlip = () => {
+    if (document.startViewTransition) {
+      document.startViewTransition(() => setGlobalFlip(prev => !prev));
+    } else {
+      setGlobalFlip(prev => !prev);
+    }
+  };
+
   return (
     <div className="container">
       <header className="app-header">
@@ -175,11 +199,11 @@ export default function App() {
       <main>
         <SearchBar 
           searchTerm={searchTerm} 
-          onSearchChange={setSearchTerm} 
+          onSearchChange={handleSearchChange} 
           sortBy={sortBy}
-          onSortChange={setSortBy}
+          onSortChange={handleSortChange}
           globalFlip={globalFlip}
-          onToggleFlip={() => setGlobalFlip(!globalFlip)}
+          onToggleFlip={handleToggleFlip}
         />
         {loading ? (
            <div style={{ textAlign: 'center', padding: '2rem', fontSize: '1.1rem', color: 'var(--color-text-muted)' }}>

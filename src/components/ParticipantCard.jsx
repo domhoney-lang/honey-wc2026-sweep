@@ -189,7 +189,11 @@ export default function ParticipantCard({ id, name, initials, color, countries, 
   };
 
   return (
-    <div className={`participant-card-container stagger-fade-in ${isFlipped ? 'flipped' : ''}`} style={{ ...style, cursor: 'pointer' }} onClick={() => setIsFlipped(!isFlipped)}>
+    <div 
+      className={`participant-card-container stagger-fade-in ${isFlipped ? 'flipped' : ''}`} 
+      style={{ ...style, cursor: 'pointer', '--participant-color': color }} 
+      onClick={() => setIsFlipped(!isFlipped)}
+    >
       <div className={`participant-card flip-card-inner ${isEliminated ? 'eliminated-card' : ''}`}>
         
         {/* FRONT FACE */}
@@ -210,7 +214,7 @@ export default function ParticipantCard({ id, name, initials, color, countries, 
                 <span className="country-name">{country.name}</span>
                 {country.status === 'active' && country.price && (
                   <span className={`odds-badge slide-in ${getOddsTier(country.price)}`}>
-                    [{decimalToFraction(country.price)}]
+                    {decimalToFraction(country.price)}
                   </span>
                 )}
                 {country.status === 'eliminated' && <span className="eliminated-badge slide-in">Eliminated</span>}
@@ -220,7 +224,7 @@ export default function ParticipantCard({ id, name, initials, color, countries, 
         </div>
 
         {/* BACK FACE */}
-        <div className="flip-card-back" style={{ borderTop: `4px solid ${color}` }}>
+        <div className="flip-card-back" style={{ border: `4px solid ${color}` }}>
           <div className="back-header" style={{ textAlign: 'center' }}>
             <ParticipantAvatar participant={{ name, initials, color }} size="80px" style={{ borderWidth: '3px' }} />
           </div>
