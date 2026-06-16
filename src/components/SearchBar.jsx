@@ -22,7 +22,7 @@ export default function SearchBar({ searchTerm, onSearchChange, sortBy, onSortCh
         )}
       </div>
       <div className="sort-buttons" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-        <span style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem', fontWeight: 500 }}>Sort by:</span>
+        <span style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem', fontWeight: 500, paddingLeft: '1rem', paddingRight: '0.25rem' }}>Sort:</span>
         <button 
           className={`sort-btn ${sortBy === 'name' ? 'active' : ''}`}
           onClick={() => onSortChange('name')}
