@@ -15,11 +15,9 @@ export default function Leaderboard({ participants, searchTerm, sortBy, fixtures
     return lower;
   };
 
-  const getNextMatchTime = (p) => {
-    const activeCountries = p.countries.filter(c => c.status === 'active');
-    if (activeCountries.length === 0 || !fixtures || fixtures.length === 0) return Infinity;
-    
-    const activeNames = activeCountries.map(c => normalizeCountryName(c.name));
+  const getCountryNextMatchTime = (c) => {
+    if (c.status !== 'active' || !fixtures || fixtures.length === 0) return Infinity;
+    const countryNameNormalized = normalizeCountryName(c.name);
     const now = new Date();
     const cutoffTime = new Date(now.getTime() - 2.5 * 60 * 60 * 1000);
     
@@ -27,14 +25,21 @@ export default function Leaderboard({ participants, searchTerm, sortBy, fixtures
     relevantFixtures.sort((a, b) => new Date(a.commence_time) - new Date(b.commence_time));
     
     for (const match of relevantFixtures) {
-      const homeMatch = activeNames.includes(match.home_team_normalized || normalizeCountryName(match.home_team));
-      const awayMatch = activeNames.includes(match.away_team_normalized || normalizeCountryName(match.away_team));
+      const homeMatch = (match.home_team_normalized || normalizeCountryName(match.home_team)) === countryNameNormalized;
+      const awayMatch = (match.away_team_normalized || normalizeCountryName(match.away_team)) === countryNameNormalized;
       
       if (homeMatch || awayMatch) {
         return new Date(match.commence_time).getTime();
       }
     }
     return Infinity;
+  };
+
+  const getNextMatchTime = (p) => {
+    const activeCountries = p.countries.filter(c => c.status === 'active');
+    if (activeCountries.length === 0) return Infinity;
+    const times = activeCountries.map(c => getCountryNextMatchTime(c));
+    return Math.min(...times);
   };
 
   const sortedParticipants = [...participants].sort((a, b) => {
@@ -94,6 +99,12 @@ export default function Leaderboard({ participants, searchTerm, sortBy, fixtures
               // If both have the same odds (e.g. both Infinity because they are eliminated), sort alphabetically
               if (aOdds === bOdds) return a.name.localeCompare(b.name);
               return aOdds - bOdds;
+           }
+           if (sortBy === 'next_match') {
+              const aTime = getCountryNextMatchTime(a);
+              const bTime = getCountryNextMatchTime(b);
+              if (aTime === bTime) return a.name.localeCompare(b.name);
+              return aTime - bTime;
            }
            return 0;
         });
