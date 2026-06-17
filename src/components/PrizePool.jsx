@@ -1,4 +1,3 @@
-import React from 'react';
 
 export default function PrizePool({ participants }) {
   // Flatten all countries with their participant owner
@@ -41,7 +40,7 @@ export default function PrizePool({ participants }) {
     semi2 = { pending: true, teams: activeTeams };
   }
 
-  const renderCandidate = (spot, label) => {
+  const renderCandidate = (spot) => {
     if (!spot) return <div className="prize-candidates"><span className="candidate-badge">TBD</span></div>;
     
     if (spot.pending) {
@@ -71,22 +70,22 @@ export default function PrizePool({ participants }) {
       <div className="prize-card winner">
         <div className="prize-title">Winner</div>
         <div className="prize-amount">£60</div>
-        {renderCandidate(winner, 'Winner')}
+        {renderCandidate(winner)}
       </div>
       <div className="prize-card runner-up">
         <div className="prize-title">Runner-Up</div>
         <div className="prize-amount">£30</div>
-        {renderCandidate(runnerUp, 'Runner-Up')}
+        {renderCandidate(runnerUp)}
       </div>
       <div className="prize-card semi-1">
-        <div className="prize-title">Semi-Finalist 1</div>
-        <div className="prize-amount">£15</div>
-        {renderCandidate(semi1, 'Semi-Finalist')}
+        <div className="prize-title">3rd Place</div>
+        <div className="prize-amount">£20</div>
+        {renderCandidate(semi1)}
       </div>
       <div className="prize-card semi-2">
-        <div className="prize-title">Semi-Finalist 2</div>
-        <div className="prize-amount">£15</div>
-        {renderCandidate(semi2, 'Semi-Finalist')}
+        <div className="prize-title">4th Place</div>
+        <div className="prize-amount">£10</div>
+        {renderCandidate(semi2)}
       </div>
     </div>
   );
