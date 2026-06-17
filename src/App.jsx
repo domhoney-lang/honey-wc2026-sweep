@@ -3,6 +3,7 @@ import { initialParticipants, THE_ODDS_API_KEY } from './data';
 import PrizePool from './components/PrizePool';
 import SearchBar from './components/SearchBar';
 import Leaderboard from './components/Leaderboard';
+import GroupStandingsDrawer from './components/GroupStandingsDrawer';
 
 const normalizeCountryName = (name) => {
   if (!name) return '';
@@ -25,6 +26,10 @@ export default function App() {
   const [error, setError] = useState(null);
   const [fixtures, setFixtures] = useState([]);
   const [globalFlip, setGlobalFlip] = useState(false);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [standings, setStandings] = useState([]);
+  const [standingsLoading, setStandingsLoading] = useState(false);
+  const [standingsError, setStandingsError] = useState(null);
 
   useEffect(() => {
     async function fetchOdds() {
@@ -161,6 +166,136 @@ export default function App() {
     fetchOdds();
   }, []);
 
+  useEffect(() => {
+    async function fetchStandings() {
+      const STANDINGS_CACHE_KEY = 'standingsDataCache';
+      const STANDINGS_CACHE_TIME_KEY = 'standingsDataTimestamp';
+      const ONE_HOUR_MS = 60 * 60 * 1000;
+
+      const cachedData = localStorage.getItem(STANDINGS_CACHE_KEY);
+      const cachedTime = localStorage.getItem(STANDINGS_CACHE_TIME_KEY);
+
+      if (cachedData && cachedTime && (Date.now() - Number(cachedTime) < ONE_HOUR_MS)) {
+        try {
+          setStandings(JSON.parse(cachedData));
+          return;
+        } catch (e) {
+          console.error("Failed to parse cached standings data", e);
+        }
+      }
+
+      setStandingsLoading(true);
+      setStandingsError(null);
+
+      try {
+        const [resGroups, resTeams] = await Promise.all([
+          fetch('https://worldcup26.ir/get/groups'),
+          fetch('https://worldcup26.ir/get/teams')
+        ]);
+
+        if (!resGroups.ok || !resTeams.ok) {
+          throw new Error("Failed to fetch live standings data");
+        }
+
+        const [groupsData, teamsData] = await Promise.all([
+          resGroups.json(),
+          resTeams.json()
+        ]);
+
+        if (!groupsData || !groupsData.groups || !teamsData || !teamsData.teams) {
+          throw new Error("Standings data structure is invalid");
+        }
+
+        const teamsMap = {};
+        teamsData.teams.forEach(t => {
+          teamsMap[t.id] = t;
+        });
+
+        const sortedGroups = [...groupsData.groups].sort((a, b) => a.name.localeCompare(b.name));
+
+        const processed = sortedGroups.map(g => {
+          const enrichedTeams = g.teams.map(t => {
+            const teamDetails = teamsMap[t.team_id] || {};
+            return {
+              team_id: t.team_id,
+              mp: t.mp,
+              w: t.w,
+              d: t.d,
+              l: t.l,
+              gf: t.gf,
+              ga: t.ga,
+              gd: t.gd,
+              pts: t.pts,
+              name: teamDetails.name_en || 'Unknown',
+              iso2: teamDetails.iso2 || ''
+            };
+          });
+
+          // Sort by points, goal diff, goals for
+          enrichedTeams.sort((a, b) => {
+            const ptsA = parseInt(a.pts) || 0;
+            const ptsB = parseInt(b.pts) || 0;
+            if (ptsB !== ptsA) return ptsB - ptsA;
+
+            const gdA = parseInt(a.gd) || 0;
+            const gdB = parseInt(b.gd) || 0;
+            if (gdB !== gdA) return gdB - gdA;
+
+            const gfA = parseInt(a.gf) || 0;
+            const gfB = parseInt(b.gf) || 0;
+            return gfB - gfA;
+          });
+
+          return {
+            groupName: `Group ${g.name}`,
+            teams: enrichedTeams
+          };
+        });
+
+        localStorage.setItem(STANDINGS_CACHE_KEY, JSON.stringify(processed));
+        localStorage.setItem(STANDINGS_CACHE_TIME_KEY, Date.now().toString());
+
+        setStandings(processed);
+      } catch (err) {
+        console.error(err);
+        setStandingsError("Failed to load live group standings.");
+      } finally {
+        setStandingsLoading(false);
+      }
+    }
+
+    fetchStandings();
+  }, []);
+
+  const enrichedStandings = React.useMemo(() => {
+    const getTeamOwner = (teamName) => {
+      const normalizedName = normalizeCountryName(teamName);
+      for (const p of participants) {
+        const matched = p.countries.find(c => normalizeCountryName(c.name) === normalizedName);
+        if (matched) {
+          return p;
+        }
+      }
+      return null;
+    };
+
+    return standings.map(g => ({
+      ...g,
+      teams: g.teams.map(t => ({
+        ...t,
+        owner: getTeamOwner(t.name)
+      }))
+    }));
+  }, [standings, participants]);
+
+  const handleSelectParticipant = (name) => {
+    if (document.startViewTransition) {
+      document.startViewTransition(() => setSearchTerm(name));
+    } else {
+      setSearchTerm(name);
+    }
+  };
+
   const handleSearchChange = (val) => {
     if (document.startViewTransition) {
       document.startViewTransition(() => setSearchTerm(val));
@@ -204,6 +339,7 @@ export default function App() {
           onSortChange={handleSortChange}
           globalFlip={globalFlip}
           onToggleFlip={handleToggleFlip}
+          onToggleDrawer={() => setIsDrawerOpen(prev => !prev)}
         />
         {loading ? (
            <div style={{ textAlign: 'center', padding: '2rem', fontSize: '1.1rem', color: 'var(--color-text-muted)' }}>
@@ -219,6 +355,16 @@ export default function App() {
           />
         )}
       </main>
+
+      <GroupStandingsDrawer
+        isOpen={isDrawerOpen}
+        onClose={() => setIsDrawerOpen(false)}
+        standings={enrichedStandings}
+        loading={standingsLoading}
+        error={standingsError}
+        onSelectParticipant={handleSelectParticipant}
+        activeSearchTerm={searchTerm}
+      />
     </div>
   );
 }

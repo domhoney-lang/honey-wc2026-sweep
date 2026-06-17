@@ -1,6 +1,5 @@
-import React from 'react';
 
-export default function SearchBar({ searchTerm, onSearchChange, sortBy, onSortChange, globalFlip, onToggleFlip }) {
+export default function SearchBar({ searchTerm, onSearchChange, sortBy, onSortChange, globalFlip, onToggleFlip, onToggleDrawer }) {
   return (
     <div className="controls-container">
       <div className="search-wrapper">
@@ -42,7 +41,7 @@ export default function SearchBar({ searchTerm, onSearchChange, sortBy, onSortCh
           Next Match
         </button>
       </div>
-      <div className="sort-buttons">
+      <div className="sort-buttons" style={{ display: 'flex', gap: '0.25rem' }}>
         <button 
           className="sort-btn"
           onClick={onToggleFlip}
@@ -53,6 +52,16 @@ export default function SearchBar({ searchTerm, onSearchChange, sortBy, onSortCh
           }}
         >
           {globalFlip ? 'Unflip Cards' : 'Flip Cards'}
+        </button>
+        <button 
+          className="sort-btn"
+          onClick={onToggleDrawer}
+          style={{
+            background: 'transparent',
+            color: 'var(--color-text-muted)'
+          }}
+        >
+          🏆 Group Tables
         </button>
       </div>
     </div>

@@ -554,3 +554,315 @@ h1, h2, h3, h4, h5, h6 {
   color: #475569;
   background-color: #e2e8f0;
 }
+
+/* Drawer & Group Standings Drawer */
+.drawer-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(8px);
+  z-index: 999;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--transition-normal);
+}
+
+.drawer-backdrop.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.drawer-container {
+  position: fixed;
+  top: 0;
+  right: 0;
+  height: 100vh;
+  width: 480px;
+  max-width: 100%;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(20px);
+  border-left: 1px solid var(--color-border);
+  box-shadow: -10px 0 30px -5px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  transform: translateX(100%);
+  transition: transform var(--transition-normal);
+}
+
+.drawer-container.open {
+  transform: translateX(0);
+}
+
+.drawer-header {
+  padding: 1.5rem;
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.drawer-header h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-text-main);
+  margin-bottom: 0;
+}
+
+.drawer-close-btn {
+  background: transparent;
+  border: none;
+  font-size: 2rem;
+  line-height: 1;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+}
+
+.drawer-close-btn:hover {
+  background: var(--color-eliminated-bg);
+  color: var(--color-text-main);
+  transform: scale(1.05);
+}
+
+.drawer-body {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Standings Card & Table styling */
+.group-standings-card {
+  background: var(--color-surface);
+  border-radius: 1rem;
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.group-standings-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.group-standings-header {
+  background: var(--color-bg);
+  padding: 0.75rem 1.25rem;
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: var(--color-text-main);
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.group-standings-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 0.9rem;
+}
+
+.group-standings-table th {
+  padding: 0.75rem 1rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface);
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+}
+
+.group-standings-table td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text-main);
+  vertical-align: middle;
+}
+
+.group-standings-table tr:last-child td {
+  border-bottom: none;
+}
+
+.group-standings-table tr {
+  transition: background-color var(--transition-fast);
+}
+
+.group-standings-table tr:hover {
+  background-color: var(--color-bg);
+}
+
+.col-center {
+  text-align: center;
+}
+
+.col-right {
+  text-align: right;
+}
+
+.pts-col {
+  font-weight: 700;
+  color: var(--color-text-main);
+}
+
+/* Row Rank Qualification Indicators */
+.qualify-top2 {
+  border-left: 4px solid #10b981;
+}
+
+.qualify-3rd {
+  border-left: 4px solid #f59e0b;
+}
+
+.qualify-none {
+  border-left: 4px solid transparent;
+}
+
+/* Flag & Team styling in tables */
+.table-team-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 500;
+}
+
+.table-flag {
+  font-size: 1.1rem;
+  border-radius: 2px;
+  box-shadow: 0 0 1px rgba(0,0,0,0.3);
+}
+
+/* Standings Owner Badge */
+.standings-owner-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform var(--transition-fast), filter var(--transition-fast);
+  box-shadow: var(--shadow-sm);
+  margin-left: 0.25rem;
+}
+
+.standings-owner-badge:hover {
+  transform: scale(1.15);
+  filter: brightness(1.1);
+}
+
+/* Skeleton loader animations */
+.skeleton-pulse {
+  background: linear-gradient(-90deg, #f1f5f9 0%, #e2e8f0 50%, #f1f5f9 100%);
+  background-size: 400% 400%;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.skeleton-card {
+  border-radius: 1rem;
+  border: 1px solid var(--color-border);
+  overflow: hidden;
+  background: var(--color-surface);
+  height: 180px;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.skeleton-title {
+  height: 20px;
+  width: 40%;
+  border-radius: 4px;
+}
+
+.skeleton-row {
+  height: 16px;
+  width: 100%;
+  border-radius: 4px;
+  margin-top: 0.25rem;
+}
+
+/* Responsive styles */
+@media (max-width: 500px) {
+  .drawer-container {
+    width: 100vw;
+  }
+  
+  /* Hide Wins, Draws, Losses, and GD columns on small viewports */
+  .hide-mobile {
+    display: none;
+  }
+  
+  .group-standings-table th, 
+  .group-standings-table td {
+    padding: 0.6rem 0.75rem;
+  }
+}
+
+/* Standings Quick Jump Navigation */
+.standings-nav-bar {
+  display: flex;
+  justify-content: space-between;
+  background: rgba(241, 245, 249, 0.85);
+  backdrop-filter: blur(8px);
+  padding: 0.5rem;
+  border-radius: 9999px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  border: 1px solid var(--color-border);
+  margin-bottom: 0.5rem;
+}
+
+.standings-nav-btn {
+  background: transparent;
+  border: none;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+}
+
+.standings-nav-btn:hover {
+  background: var(--color-surface);
+  color: var(--color-primary);
+  transform: scale(1.15);
+}
+
