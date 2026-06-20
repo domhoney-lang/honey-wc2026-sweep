@@ -1,6 +1,7 @@
 // Add your Odds API Key here to fetch live World Cup outright odds
 // Get a free key at: https://the-odds-api.com/
 export const THE_ODDS_API_KEY = 'c356a56d070a2b22a64b6a5f88bc2b45';
+export const TEAM_STATUS_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTGLc9jAL0SWzOCtrc0hDSWapV2UDYdmHjP86M1DObyZbklO-FTkn33IcUg9Ufq-WHSCxL87PHcirji/pub?gid=179469367&single=true&output=csv';
 
 export const initialParticipants = [
   { id: 1, name: 'Angela', initials: 'AN', color: '#10b981', countries: [{ name: 'Switzerland', code: 'ch', status: 'active' }, { name: 'Tunisia', code: 'tn', status: 'active' }] },

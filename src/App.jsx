@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { initialParticipants, THE_ODDS_API_KEY } from './data';
+import Papa from 'papaparse';
+import { initialParticipants, THE_ODDS_API_KEY, TEAM_STATUS_CSV_URL } from './data';
 import PrizePool from './components/PrizePool';
 import SearchBar from './components/SearchBar';
 import Leaderboard from './components/Leaderboard';
@@ -18,6 +19,50 @@ const normalizeCountryName = (name) => {
   return lower;
 };
 
+const parseEliminatedAt = (value) => {
+  if (!value) return null;
+
+  const trimmed = value.trim();
+  const ukDateMatch = trimmed.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+
+  if (ukDateMatch) {
+    const [, day, month, year] = ukDateMatch;
+    return new Date(Number(year), Number(month) - 1, Number(day)).getTime();
+  }
+
+  const parsed = Date.parse(trimmed);
+  return Number.isNaN(parsed) ? null : parsed;
+};
+
+const fetchManualStatusMap = async () => {
+  if (!TEAM_STATUS_CSV_URL) return {};
+
+  try {
+    const response = await fetch(TEAM_STATUS_CSV_URL);
+    if (!response.ok) throw new Error("Failed to fetch manual team status CSV");
+
+    const csv = await response.text();
+    const { data } = Papa.parse(csv, { header: true, skipEmptyLines: true });
+
+    return data.reduce((acc, row) => {
+      const country = row.Country || row.country;
+      const status = (row.Status || row.status || '').trim().toLowerCase();
+
+      if (!country || !['active', 'eliminated'].includes(status)) return acc;
+
+      acc[normalizeCountryName(country)] = {
+        status,
+        eliminatedAt: parseEliminatedAt(row.EliminatedAt || row.eliminatedAt || row.eliminated_at),
+      };
+
+      return acc;
+    }, {});
+  } catch (err) {
+    console.error(err);
+    return {};
+  }
+};
+
 export default function App() {
   const [participants, setParticipants] = useState(initialParticipants);
   const [searchTerm, setSearchTerm] = useState('');
@@ -33,32 +78,45 @@ export default function App() {
 
   useEffect(() => {
     async function fetchOdds() {
-      if (!THE_ODDS_API_KEY || THE_ODDS_API_KEY === 'YOUR_API_KEY_HERE') {
-        return;
-      }
-
       const CACHE_KEY = 'oddsDataCache';
       const CACHE_TIME_KEY = 'oddsDataTimestamp';
       const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
-      const applyOddsMap = (oddsMap) => {
+      const applyTeamData = (oddsMap = {}, manualStatusMap = {}, hasOddsData = false) => {
         setParticipants(prev => prev.map(p => ({
           ...p,
           countries: p.countries.map(c => {
              const normalizedKey = normalizeCountryName(c.name);
              const price = oddsMap[normalizedKey];
-             
-             if (price === undefined) {
-                return { ...c, status: 'eliminated', eliminatedAt: c.eliminatedAt || Date.now(), price: null };
-             } else {
-                return { ...c, status: 'active', eliminatedAt: null, price: price };
-             }
+             const manualStatus = manualStatusMap[normalizedKey];
+             const oddsDerived = price === undefined
+                ? { status: 'eliminated', eliminatedAt: c.eliminatedAt || Date.now(), price: null }
+                : { status: 'active', eliminatedAt: null, price: price };
+             const base = hasOddsData ? oddsDerived : { status: c.status, eliminatedAt: c.eliminatedAt || null, price: c.price || null };
+
+             if (!manualStatus) return { ...c, ...base };
+
+             return {
+                ...c,
+                ...base,
+                status: manualStatus.status,
+                eliminatedAt: manualStatus.status === 'eliminated'
+                  ? manualStatus.eliminatedAt || base.eliminatedAt || Date.now()
+                  : null,
+             };
           })
         })));
       };
 
       const FIXTURES_CACHE_KEY = 'fixturesDataCache';
       const FIXTURES_CACHE_TIME_KEY = 'fixturesDataTimestamp';
+
+      const manualStatusMap = await fetchManualStatusMap();
+
+      if (!THE_ODDS_API_KEY || THE_ODDS_API_KEY === 'YOUR_API_KEY_HERE') {
+        applyTeamData({}, manualStatusMap, false);
+        return;
+      }
 
       // Check LocalStorage Cache
       const cachedData = localStorage.getItem(CACHE_KEY);
@@ -67,8 +125,8 @@ export default function App() {
       let isOutrightCached = false;
       if (cachedData && cachedTime && (Date.now() - Number(cachedTime) < ONE_DAY_MS)) {
         try {
-          const oddsMap = JSON.parse(cachedData);
-          applyOddsMap(oddsMap);
+          const cachedOddsMap = JSON.parse(cachedData);
+          applyTeamData(cachedOddsMap, manualStatusMap, true);
           isOutrightCached = true;
         } catch(e) {
           console.error("Failed to parse cached odds data", e);
@@ -136,7 +194,7 @@ export default function App() {
           localStorage.setItem(CACHE_KEY, JSON.stringify(oddsMap));
           localStorage.setItem(CACHE_TIME_KEY, Date.now().toString());
 
-          applyOddsMap(oddsMap);
+          applyTeamData(oddsMap, manualStatusMap, true);
         }
 
         if (!isFixturesCached) {
